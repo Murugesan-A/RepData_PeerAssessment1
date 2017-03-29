@@ -1,0 +1,155 @@
+---
+title: "Peer-graded Assignment - Course Project - 1"
+author: "Murugesan A"
+date: "29 March 2017"
+output: html_document
+---
+
+### Introduction
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+```{r echo=FALSE}
+
+suppressPackageStartupMessages(library("ggplot2"))
+suppressPackageStartupMessages(library(plyr))
+
+rm(list=ls())
+
+```
+
+Activities data is being loaded into the system, now.
+
+```{r}
+
+if (!exists("DSActivitiesWithNAs")){
+  DSActivitiesWithNAs <- read.csv(file="activity.csv", header=TRUE, sep=",")
+}
+
+```
+
+
+```{r echo=FALSE}
+
+DSActivitiesWithoutNAs <- DSActivitiesWithNAs[!rowSums((is.na(DSActivitiesWithNAs))),]
+
+```
+
+Following code snippet calculates the total number of steps per day:
+
+```{r}
+
+StepsByDate <- aggregate(steps ~ date, DSActivitiesWithNAs, sum)
+StepsByDateOrdered <- StepsByDate[ order(StepsByDate$date), ]
+
+head(StepsByDateOrdered, n=20)
+```
+
+The calculated total no. of steps for each day is being plotted in a histogram, using the following code snippet:
+
+```{r}
+
+hist(StepsByDateOrdered$steps)
+
+```
+
+The Mean and Median of the total no. of steps per day is :
+
+```{r}
+
+print(c( "Mean" = + mean(StepsByDate$steps), "Median " = + median(StepsByDate$steps)))
+
+```
+Following is the time series plot (i.e. type = "l") of the 5-minute interval (X-axis) and the average number of steps taken, averaged across all days (Y-axis).
+
+```{r}
+
+StepsByInterval <- aggregate(steps ~ interval, DSActivitiesWithoutNAs, mean)
+ggplot(StepsByInterval, aes(interval, steps)) + geom_line() + xlab("5-Minutes Interval") + ylab("Average Steps")
+
+```
+
+The 5-minute interval, on average across all the days in the dataset, which contains the maximum number of steps, is :
+
+```{r}
+
+print(c("5-Minutes Interval with maximum number of steps " = + head(StepsByInterval[ order(-StepsByInterval$steps), 1], n=1)))
+
+```
+
+Imputing missing values
+
+Note that, there are a number of days/intervals, where there are missing values (coded as NA). The presence of missing days may introduce bias into some calculations or summaries of the data.
+
+The total number of missing values in the dataset (i.e. the total number of rows with NAs) is :
+
+```{r}
+
+CountMissingValuesRows <- function(DSActivitiesWithNAs) lapply(DSActivitiesWithNAs,function(x) data.frame(Total.No.of.Missing.Values=sum(is.na(x))))
+CountMissingValuesRows(DSActivitiesWithNAs)$steps
+
+```
+
+The missing data values(NAs) will be replaced with the mean value of the steps calculated per day. This value is taken from the rows where we hvae values for steps for the day. Following code snippet illustrates that:
+
+```{r}
+
+DSActivitiesWithNAs$steps[is.na(DSActivitiesWithNAs$steps)] = mean(DSActivitiesWithNAs$steps, na.rm=TRUE)
+
+```
+The new dataset that is equal to the original dataset, but with the missing data filled in, is as follows :
+```{r}
+
+DSActivitiesWithImputedNAs<- DSActivitiesWithNAs
+
+```
+
+Following code snippet shows the histogram of the total number of steps taken each day :
+
+```{r}
+
+StepsByDateWithImputtedValues <- aggregate(steps ~ date, DSActivitiesWithImputedNAs, sum)
+StepsByDateWithImputtedValuesOrdered <- StepsByDateWithImputtedValues[ order(StepsByDateWithImputtedValues$date), ]
+
+hist(StepsByDateWithImputtedValuesOrdered$steps)
+
+```
+
+And, the mean and median total number of steps taken per day are :
+
+```{r}
+
+print(c( "Mean" = + mean(StepsByDateWithImputtedValuesOrdered$steps), "Median " = + median(StepsByDateWithImputtedValuesOrdered$steps)))
+
+```
+### Note :
+
+The mean values, computed before and after imputting the values, are same.
+And, the median  values, computed before and after imputting the values, are ALMOST the same.
+Hence, there is NO impact of imputting the estimates/values for missing  numbers!
+
+Following code creates a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day :
+
+```{r}
+
+weekdays1 <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+DSActivitiesFinal <- mutate(DSActivitiesWithImputedNAs, weekday1 = ifelse(weekdays(as.Date(date)) %in% weekdays1, "Weekday", "Weekend" ))
+
+```
+Following is the multi panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis)
+
+```{r}
+
+attach(DSActivitiesFinal)
+DSActivitiesFinal2 <- aggregate(steps ~ weekday1 + interval, data = DSActivitiesFinal, mean)
+detach(DSActivitiesFinal)
+```
+And, the resultant graph is :
+
+```{r}
+
+p <- ggplot(DSActivitiesFinal2, aes(interval, steps)) + geom_point() 
+p <- p + facet_grid(weekday1 ~ .) + geom_line(colour="#CC0000") + ggtitle("Activities averaged by weekend/weekday")
+print(p)
+
+```

@@ -1,0 +1,5 @@
+library(knitr)
+setwd("E:\\Murugesan\\Personal\\Coursera - Data Science Course\\Reproducible Research")
+#knit2html("PA1_template.rmd")
+rmarkdown::render("PA1_template.rmd")
+browseURL("PA1_template.html")
